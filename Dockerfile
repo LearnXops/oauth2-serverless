@@ -1,20 +1,61 @@
-FROM node:20-alpine
+# Stage 1: Build the application
+FROM node:20-alpine AS builder
 
-# Create app directory
+# Set working directory
 WORKDIR /app
 
-# Install app dependencies
-# A wildcard is used to ensure both package.json AND package-lock.json are copied
+# Install build dependencies
+RUN apk add --no-cache python3 make g++
+
+# Copy package files
 COPY package*.json ./
 
-# Install dependencies
-RUN npm install
+# Install production dependencies only
+RUN npm ci --only=production
 
-# Bundle app source
+# Copy application source
 COPY . .
 
-# Expose port
+# Build the application if needed (e.g., for TypeScript)
+# RUN npm run build
+
+# Stage 2: Create the production image
+FROM node:20-alpine
+
+# Install runtime dependencies
+RUN apk add --no-cache tini
+
+# Set working directory
+WORKDIR /app
+
+# Copy built application from builder
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/package*.json ./
+COPY --from=builder /app/index.js .
+COPY --from=builder /app/handler.js .
+COPY --from=builder /app/model.js .
+COPY --from=builder /app/apidoc.json .
+COPY --from=builder /app/swagger.yaml .
+
+# Create non-root user and switch to it
+RUN addgroup -S appgroup && \
+    adduser -S appuser -G appgroup && \
+    chown -R appuser:appgroup /app
+USER appuser
+
+# Set environment variables for production
+ENV NODE_ENV=production
+ENV PORT=3000
+
+# Expose the application port
 EXPOSE 3000
 
-# Start the application by running index.js directly
+# Use tini as init system to handle signals properly
+ENTRYPOINT ["/sbin/tini", "--"]
+
+# Command to run the application
 CMD ["node", "index.js"]
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:3000/status || exit 1

@@ -29,13 +29,7 @@ RUN apk add --no-cache tini
 WORKDIR /app
 
 # Copy built application from builder
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package*.json ./
-COPY --from=builder /app/index.js .
-COPY --from=builder /app/handler.js .
-COPY --from=builder /app/model.js .
-COPY --from=builder /app/apidoc.json .
-COPY --from=builder /app/swagger.yaml .
+COPY --from=builder /app/ .
 
 # Create non-root user and switch to it
 RUN addgroup -S appgroup && \

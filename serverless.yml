@@ -1,0 +1,35 @@
+service: oauthservice # NOTE: update this with your service name
+
+frameworkVersion: "3"
+
+plugins:
+  - serverless-dotenv-plugin
+
+custom:
+  dotenv:
+    path: ./.env  # Path to .env file (optional)
+    include:
+      - NODE_ENV
+      - DB_*
+      - JWT_*
+      - CLIENT_*
+      - REDIRECT_URI
+    exclude:
+      - AWS_*
+    logging: false  # Turn off logging
+    required:
+      file: false  # .env file is not required
+
+provider:
+  name: aws
+  memorySize: 512 # optional, in MB, default is 1024
+  runtime: nodejs20.x
+  timeout: 26 # optional, in seconds, default is 6
+  environment:
+    NODE_ENV: ${env:NODE_ENV, 'development'}
+
+functions:
+  api:
+    handler: handler.api
+    events:
+      - httpApi: '*'

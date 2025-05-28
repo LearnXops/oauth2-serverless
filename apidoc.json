@@ -1,0 +1,23 @@
+{
+    "name": "OAuth API",
+    "version": "1.0.0",
+    "description": "API documentation for the OAuth service",
+    "title": "OAuth API Documentation",
+    "url": "https://oauth.your_server.com",
+    "sampleUrl": "https://oauth.your_server.com",
+    "template": {
+        "forceLanguage": "en"
+    },
+    "order": [
+        "OAuth",
+        "Admin"
+    ],
+    "header": {
+        "title": "Introduction",
+        "content": "<h1>OAuth API</h1><p>This API provides OAuth token management and admin functionality for managing OAuth access records.</p>"
+    },
+    "footer": {
+        "title": "Security",
+        "content": "<h2>Authentication</h2><p>OAuth endpoints use Bearer token authentication. Admin endpoints require an API key in the x-api-key header.</p>"
+    }
+}

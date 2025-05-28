@@ -1,0 +1,451 @@
+openapi: 3.0.0
+info:
+  title: OAuth API
+  version: 1.0.0
+  description: API documentation for the OAuth service
+servers:
+  - url: https://oauth.your_server.com
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    apiKeyAuth:
+      type: apiKey
+      in: header
+      name: x-api-key
+  schemas:
+    OAuthAccessRecord:
+      type: object
+      properties:
+        _id:
+          type: string
+          description: MongoDB ObjectId
+        user_id:
+          type: string
+          description: User ID
+        username:
+          type: string
+          description: Username
+        vendor_id:
+          type: string
+          description: Vendor ID
+        clientId:
+          type: string
+          description: Client ID
+        clientSecret:
+          type: string
+          description: Client Secret
+        grants:
+          type: array
+          items:
+            type: string
+          description: Grant types
+      required:
+        - user_id
+        - username
+        - vendor_id
+        - clientId
+        - clientSecret
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error message
+paths:
+  /oauth/token:
+    post:
+      summary: Request Token
+      description: Request an access token using client credentials
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required:
+                - client_id
+                - client_secret
+                - grant_type
+              properties:
+                client_id:
+                  type: string
+                  description: The client ID
+                client_secret:
+                  type: string
+                  description: The client secret
+                grant_type:
+                  type: string
+                  description: The grant type, must be "client_credentials"
+      responses:
+        '200':
+          description: Token response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accessToken:
+                    type: string
+                  accessTokenExpiresAt:
+                    type: string
+                  client:
+                    type: object
+                    properties:
+                      username:
+                        type: string
+                  user:
+                    type: object
+                    properties:
+                      user_id:
+                        type: string
+                      username:
+                        type: string
+                  finalAuthToken:
+                    type: string
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  statusCode:
+                    type: integer
+                  status:
+                    type: integer
+                  code:
+                    type: integer
+                  message:
+                    type: string
+                  name:
+                    type: string
+  /validate-token:
+    get:
+      summary: Validate Token
+      description: Validate an access token
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          schema:
+            type: string
+            example: Bearer <token>
+          description: Bearer token
+      responses:
+        '200':
+          description: Token validation response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  active:
+                    type: boolean
+                  username:
+                    type: string
+                  expiresAt:
+                    type: string
+        '400':
+          description: Invalid token
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  active:
+                    type: boolean
+                  error:
+                    type: string
+                  error_description:
+                    type: string
+  /admin/oauth-access:
+    post:
+      summary: Create OAuth Access Record
+      description: Create a new OAuth access record
+      security:
+        - apiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OAuthAccessRecord'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OAuthAccessRecord'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    get:
+      summary: List OAuth Access Records
+      description: Get a list of OAuth access records with pagination and filtering
+      security:
+        - apiKeyAuth: []
+      parameters:
+        - in: query
+          name: user_id
+          schema:
+            type: string
+          description: Filter by user ID
+        - in: query
+          name: username
+          schema:
+            type: string
+          description: Filter by username (partial match)
+        - in: query
+          name: vendor_id
+          schema:
+            type: string
+          description: Filter by vendor ID
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+          description: Page number
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+          description: Items per page
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  records:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/OAuthAccessRecord'
+                  pagination:
+                    type: object
+                    properties:
+                      total:
+                        type: integer
+                      page:
+                        type: integer
+                      limit:
+                        type: integer
+                      pages:
+                        type: integer
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /admin/oauth-access/{id}:
+    get:
+      summary: Get OAuth Access Record
+      description: Get a single OAuth access record by ID or clientId
+      security:
+        - apiKeyAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Record ID or clientId
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OAuthAccessRecord'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    put:
+      summary: Update OAuth Access Record
+      description: Update an existing OAuth access record
+      security:
+        - apiKeyAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Record ID or clientId
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                vendor_id:
+                  type: string
+                clientSecret:
+                  type: string
+                grants:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OAuthAccessRecord'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      summary: Delete OAuth Access Record
+      description: Delete an OAuth access record
+      security:
+        - apiKeyAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Record ID or clientId
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  deletedRecord:
+                    $ref: '#/components/schemas/OAuthAccessRecord'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /status:
+    get:
+      summary: Status Check
+      description: Check the status of the OAuth service and its dependencies
+      responses:
+        '200':
+          description: Service status information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: boolean
+                    description: Overall service status
+                  version:
+                    type: string
+                    description: API version
+                  timestamp:
+                    type: string
+                    description: Current server timestamp
+                  database:
+                    type: object
+                    properties:
+                      connected:
+                        type: boolean
+                        description: Database connection status
+                      name:
+                        type: string
+                        description: Database name
+                  environment:
+                    type: string
+                    description: Current environment (development, production, etc.)
+        '500':
+          description: Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'

@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  # Node.js OAuth API service
+  oauth-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: oauth-api
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - MONGO_CONN_STR=mongodb://mongodb:27017
+      - MONGO_DB_NAME=oauthdb
+      - JWT_SECRET=dev_jwt_secret_replace_in_production
+      - JWT_EXPIRES_IN=1d
+      - ADMIN_API_KEY=dev_admin_key_replace_in_production
+    volumes:
+      - ./:/app
+      - /app/node_modules
+    depends_on:
+      - mongodb
+    networks:
+      - oauth-network
+
+  # MongoDB service
+  mongodb:
+    image: mongo:latest
+    container_name: oauth-mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_DATABASE=oauthdb
+    volumes:
+      - mongodb-data:/data/oauth/db
+    networks:
+      - oauth-network
+
+volumes:
+  mongodb-data:
+    driver: local
+
+networks:
+  oauth-network:
+    driver: bridge

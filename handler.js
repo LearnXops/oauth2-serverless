@@ -2,11 +2,34 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const OAuthServer = require('oauth2-server');
 const path = require('path');
+const fs = require('fs');
 
 const serverless = require('serverless-http');
 const swaggerUi = require('swagger-ui-express');
 const YAML = require('yamljs');
+
+// Load Swagger document and modify server URL dynamically
 const swaggerDocument = YAML.load('./swagger.yaml');
+
+// Determine the server URL based on environment
+const getServerUrl = () => {
+  const env = process.env.NODE_ENV || 'development';
+  const port = process.env.PORT || 3000;
+  
+  if (env === 'production') {
+    // For AWS Lambda deployment
+    return process.env.API_URL || 'https://api.your-domain.com';
+  } else if (env === 'docker') {
+    // For Docker deployment
+    return `http://localhost:${port}`;
+  } else {
+    // For local development
+    return `http://localhost:${port}`;
+  }
+};
+
+// Set the server URL dynamically
+swaggerDocument.servers = [{ url: getServerUrl() }];
 
 // Import the model with admin functions
 const oauthModel = require('./model.js');

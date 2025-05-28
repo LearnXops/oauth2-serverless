@@ -3,8 +3,7 @@ info:
   title: OAuth API
   version: 1.0.0
   description: API documentation for the OAuth service
-servers:
-  - url: http://localhost:3000
+# Servers will be set dynamically in handler.js
 components:
   securitySchemes:
     bearerAuth:

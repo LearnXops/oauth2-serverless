@@ -221,8 +221,23 @@ const model = {
                     return null;
                 }
             }
-            const client = await performQuery(clientId, clientSecret);
-            return client;
+            
+            // For refresh_token grant, clientSecret might be null
+            let query = { clientId };
+            if (clientSecret) {
+                query.clientSecret = clientSecret;
+            }
+            
+            const oauthAccess = db.collection('oauthaccesses');
+            const client = await oauthAccess.findOne(query);
+            
+            if (!client) return null;
+            
+            // Add refresh_token to supported grants
+            return {
+                ...client,
+                grants: [...(client.grants || ['client_credentials']), 'refresh_token']
+            };
         } catch (error) {
             console.error('Error fetching client from database:', error);
             return null;
@@ -235,9 +250,12 @@ const model = {
             accessTokenExpiresAt: token.accessTokenExpiresAt,
             client: {
                 username: client.username,
+                id: client.clientId || client.id
             },
             user: user,
-            finalAuthToken: `Bearer ${token.accessToken}`
+            finalAuthToken: `Bearer ${token.accessToken}`,
+            refreshToken: token.refreshToken,
+            refreshTokenExpiresAt: token.refreshTokenExpiresAt
         };
         try {
             if (!is_connected) {
@@ -290,6 +308,59 @@ const model = {
             user_id: client.user_id,
             username: client.username,
         }; // or return a user object if your application requires it
+    },
+    
+    // Refresh token methods
+    getRefreshToken: async (refreshToken) => {
+        try {
+            if (!is_connected) {
+                try {
+                    await createConn();
+                } catch (e) {
+                    console.error(e);
+                    return null;
+                }
+            }
+            const tokensCollection = db.collection('tokens');
+            const token = await tokensCollection.findOne({ refreshToken });
+            
+            if (!token) {
+                return null;
+            }
+            
+            // Return the token in the format expected by oauth2-server
+            return {
+                refreshToken: token.refreshToken,
+                refreshTokenExpiresAt: token.refreshTokenExpiresAt,
+                client: token.client,
+                user: token.user
+            };
+        } catch (error) {
+            console.error('Error fetching refresh token:', error);
+            return null;
+        }
+    },
+    
+    // Revoke the refresh token (called after using it to get a new access token)
+    revokeToken: async (token) => {
+        try {
+            if (!is_connected) {
+                try {
+                    await createConn();
+                } catch (e) {
+                    console.error(e);
+                    return false;
+                }
+            }
+            
+            const tokensCollection = db.collection('tokens');
+            const result = await tokensCollection.deleteOne({ refreshToken: token.refreshToken });
+            
+            return result.deletedCount === 1;
+        } catch (error) {
+            console.error('Error revoking token:', error);
+            return false;
+        }
     },
 };
 

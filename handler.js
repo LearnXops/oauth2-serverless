@@ -65,10 +65,13 @@ const oauth = new OAuthServer({
  * 
  * @apiBody {String} client_id The client ID.
  * @apiBody {String} client_secret The client secret.
- * @apiBody {String} grant_type The grant type, must be "client_credentials".
+ * @apiBody {String} grant_type The grant type, must be "client_credentials" or "refresh_token".
+ * @apiBody {String} refresh_token The refresh token (required only when grant_type is "refresh_token").
  * 
  * @apiSuccess {String} accessToken The access token.
  * @apiSuccess {String} accessTokenExpiresAt The expiration date of the access token.
+ * @apiSuccess {String} refreshToken The refresh token (only when using client_credentials grant).
+ * @apiSuccess {String} refreshTokenExpiresAt The expiration date of the refresh token (only when using client_credentials grant).
  * @apiSuccess {Object} client The client object.
  * @apiSuccess {String} client.username The vendor ID.
  * @apiSuccess {Object} user The user object.
@@ -76,10 +79,12 @@ const oauth = new OAuthServer({
  * @apiSuccess {String} user.username The username.
  * @apiSuccess {String} finalAuthToken The final authorization token.
  * 
- * @apiSuccessExample {json} Success-Response:
+ * @apiSuccessExample {json} Success-Response (Client Credentials):
  * {
  *     "accessToken": "actual_access_token",
  *     "accessTokenExpiresAt": "actual_access_token_expires_at",
+ *     "refreshToken": "actual_refresh_token",
+ *     "refreshTokenExpiresAt": "actual_refresh_token_expires_at",
  *     "client": {
  *         "username": "actual_userame"
  *     },
@@ -90,11 +95,28 @@ const oauth = new OAuthServer({
  *     "finalAuthToken": "Bearer actual_access_token"
  * }
  * 
+ * @apiSuccessExample {json} Success-Response (Refresh Token):
+ * {
+ *     "accessToken": "new_access_token",
+ *     "accessTokenExpiresAt": "new_access_token_expires_at",
+ *     "refreshToken": "new_refresh_token",
+ *     "refreshTokenExpiresAt": "new_refresh_token_expires_at",
+ *     "client": {
+ *         "username": "actual_userame"
+ *     },
+ *     "user": {
+ *         "user_id": "actual_user_id",
+ *         "username": "actual_userame"
+ *     },
+ *     "finalAuthToken": "Bearer new_access_token"
+ * }
+ * 
  * @apiError (400) invalid_request Content must be application/x-www-form-urlencoded.
  * @apiError (400) invalid_client Invalid client credentials.
  * @apiError (400) invalid_grant Invalid grant type.
  * @apiError (400) unsupported_grant_type The grant type is not supported.
  * @apiError (400) invalid_scope The requested scope is invalid.
+ * @apiError (400) invalid_token The refresh token is invalid or expired.
  * 
  * @apiErrorExample {json} Error-Response (Invalid Content-Type):
  * {
@@ -139,6 +161,15 @@ const oauth = new OAuthServer({
  *     "code": 400,
  *     "message": "Invalid scope: requested scope is invalid",
  *     "name": "invalid_scope"
+ * }
+ * 
+ * @apiErrorExample {json} Error-Response (Invalid Refresh Token):
+ * {
+ *     "statusCode": 400,
+ *     "status": 400,
+ *     "code": 400,
+ *     "message": "Invalid token: refresh token is invalid",
+ *     "name": "invalid_token"
  * }
  * 
  * @apiSampleRequest https://oauth.your_server.com/oauth/token

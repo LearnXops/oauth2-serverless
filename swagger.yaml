@@ -78,7 +78,10 @@ paths:
                   description: The client secret
                 grant_type:
                   type: string
-                  description: The grant type, must be "client_credentials"
+                  description: The grant type, must be "client_credentials" or "refresh_token"
+                refresh_token:
+                  type: string
+                  description: The refresh token (required only when grant_type is "refresh_token")
       responses:
         '200':
           description: Token response
@@ -90,6 +93,10 @@ paths:
                   accessToken:
                     type: string
                   accessTokenExpiresAt:
+                    type: string
+                  refreshToken:
+                    type: string
+                  refreshTokenExpiresAt:
                     type: string
                   client:
                     type: object

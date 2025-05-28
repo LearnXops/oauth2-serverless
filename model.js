@@ -245,6 +245,17 @@ const model = {
     },
 
     saveToken: async (token, client, user) => {
+        // Ensure refresh token is generated for client_credentials grant
+        if (!token.refreshToken && client.grants && client.grants.includes('refresh_token')) {
+            // Generate a refresh token if not provided by oauth2-server
+            const crypto = require('crypto');
+            token.refreshToken = crypto.randomBytes(32).toString('hex');
+            
+            // Set refresh token expiry (14 days from now)
+            const refreshTokenLifetime = client.refreshTokenLifetime || 1209600; // 14 days in seconds
+            token.refreshTokenExpiresAt = new Date(Date.now() + (refreshTokenLifetime * 1000));
+        }
+        
         const tokenData = {
             accessToken: token.accessToken,
             accessTokenExpiresAt: token.accessTokenExpiresAt,
@@ -257,6 +268,7 @@ const model = {
             refreshToken: token.refreshToken,
             refreshTokenExpiresAt: token.refreshTokenExpiresAt
         };
+        
         try {
             if (!is_connected) {
                 // Cold start or connection timed out. Create new connection.

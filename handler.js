@@ -18,7 +18,7 @@ const getServerUrl = () => {
   
   if (env === 'production') {
     // For AWS Lambda deployment
-    return process.env.API_URL || 'https://api.your-domain.com';
+    return process.env.API_URL || 'https://oauth.your-domain.com';
   } else if (env === 'docker') {
     // For Docker deployment
     return `http://localhost:${port}`;
@@ -71,6 +71,10 @@ app.use(bodyParser.json());
 // Initialize the OAuth server
 const oauth = new OAuthServer({
     model: oauthModel, // Use the imported model
+    accessTokenLifetime: 3600, // 1 hour in seconds
+    refreshTokenLifetime: 1209600, // 14 days in seconds
+    allowExtendedTokenAttributes: true, // Allow additional attributes in token response
+    alwaysIssueNewRefreshToken: true // Always issue a new refresh token when refreshing tokens
 });
 
 // Model file will handle DB interactions & token generation
